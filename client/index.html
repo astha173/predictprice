@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Value Estimate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const locationDropdown = document.getElementById("location");
+
+            try {
+                const response = await fetch("http://127.0.0.1:5000/location_name");
+                const locations = await response.json();
+
+                locationDropdown.innerHTML = '<option value="">Select Location</option>'; 
+                locations.forEach(location => {
+                    const option = document.createElement("option");
+                    option.value = location;
+                    option.textContent = location;
+                    locationDropdown.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Error fetching locations:", error);
+            }
+        });
+
+        async function predictPrice(event) {
+            event.preventDefault();
+            const sqft = document.getElementById("total_sqft").value.trim();
+            const bhk = document.getElementById("bhk").value.trim();
+            const bathrooms = document.getElementById("bathrooms").value.trim();
+            const location = document.getElementById("location").value.trim();
+            if (!sqft || !bhk || !bathrooms || !location) {
+                alert("Please fill in all required fields.");
+                return;
+            }
+            const requestData = {
+                total_sqft: parseFloat(sqft),
+                bhk: parseInt(bhk),
+                bath: parseInt(bathrooms),
+                location: location
+            };
+
+            try {
+                const response = await fetch("http://127.0.0.1:5000/predict_home_price", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) throw new Error("Failed to fetch");
+
+                const data = await response.json();
+                document.getElementById("result").innerText = `Estimated Price in lakhs: ₹${data.price}`;
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Something went wrong! Please try again.");
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-image: url("./image/page.jpg");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="flex flex-col md:flex-row items-center justify-center min-h-screen">
+        <div class="md:w-1/2 p-8">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Get Your Home's Value Estimate</h1>
+            <p class="text-lg md:text-xl">Find out the predicted price of your house in Bangalore with an accuracy rate of 84%!</p>
+        </div>
+        <div class="md:w-1/3 bg-gray-800 p-8 rounded-lg shadow-lg">
+            <form onsubmit="predictPrice(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2" for="total_sqft">Total Square Feet <span class="text-red-500">*</span></label>
+                    <input class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded text-white" id="total_sqft" placeholder="Enter your total_sqft" type="number"/>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2" for="location">Location <span class="text-red-500">*</span></label>
+                    <select class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded text-white" id="location">
+                        <option>Loading...</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2" for="bhk">BHK <span class="text-red-500">*</span></label>
+                    <input class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded text-white" id="bhk" placeholder="Enter no. of bedrooms" type="number"/>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2" for="bathrooms">Bathrooms <span class="text-red-500">*</span></label>
+                    <input class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded text-white" id="bathrooms" placeholder="Enter no. of bathrooms" type="number"/>
+                </div>
+                
+                <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded" type="submit">Predict Price</button>
+            </form>
+            <p id="result" class="mt-4 text-lg font-semibold"></p>
+        </div>
+    </div>
+</body>
+</html>
